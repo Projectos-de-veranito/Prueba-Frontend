@@ -3,15 +3,18 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../utils/supabaseClient";
 import { User } from "../types/User.entity";
 import { Contact } from "../types/Contact.entity";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, UserPlus, Search } from "lucide-react";
 
 interface ContactListProps {
-    onSelectContact: (contact: { id: string; username: string; avatar_url: string }) => void;
+    onSelectContact: (contact: { id: string; username: string; avatar_url: string; chatId?: string }) => void;
 }
 
 const ContactList = ({ onSelectContact }: ContactListProps) => {
     const { user } = useAuth();
     const [contacts, setContacts] = useState<Contact[]>([]);
+    const [search, setSearch] = useState("");
+    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [showSearch, setShowSearch] = useState(false);
 
     useEffect(() => {
         const fetchContacts = async () => {
@@ -20,13 +23,10 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
             const { data, error } = await supabase
                 .from("contacts")
                 .select(`
-          id, 
-          user_id, 
-          contact_id, 
-          status,
-          user:user_id(id, username, email, avatar_url),
-          contact:contact_id(id, username, email, avatar_url)
-        `)
+                    id, user_id, contact_id, status,
+                    user:user_id(id, username, email, avatar_url),
+                    contact:contact_id(id, username, email, avatar_url)
+                `)
                 .or(`user_id.eq.${user.id},contact_id.eq.${user.id}`)
                 .eq("status", "accepted");
 
@@ -41,16 +41,12 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                     ? (Array.isArray(contact.contact) ? contact.contact[0] : contact.contact)
                     : (Array.isArray(contact.user) ? contact.user[0] : contact.user);
 
-                if (!userData) {
-                    console.warn("Contacto sin información:", contact);
-                }
-
                 return {
                     id: contact.id,
                     user_id: contact.user_id,
                     contact_id: contact.contact_id,
                     status: contact.status,
-                    users: userData
+                    users: userData,
                 };
             });
 
@@ -60,99 +56,180 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
         fetchContacts();
     }, [user]);
 
-    // Función para crear el chat y añadir los miembros
-    const handleMessageClick = async (contact: User) => {
-        if (!user) return;
+    const handleSearch = async () => {
+        if (!search.trim()) return;
 
-        // Verificar si ya existe un chat entre el usuario actual y el contacto
-        const { data: userChats, error: userChatsError } = await supabase
-            .from("chat_members")
-            .select("chat_id")
-            .eq("user_id", user.id);
+        const { data, error } = await supabase
+            .from("users")
+            .select("id, username, email, avatar_url")
+            .ilike("username", `%${search}%`)
+            .neq("id", user?.id);
 
-        if (userChatsError) {
-            console.error("Error al obtener chats del usuario:", userChatsError);
+        if (error) {
+            console.error("Error buscando usuarios:", error);
             return;
         }
 
-        const userChatIds = userChats.map((item) => item.chat_id);
-
-        const { data: contactChats, error: contactChatsError } = await supabase
-            .from("chat_members")
-            .select("chat_id")
-            .eq("user_id", contact.id);
-
-        if (contactChatsError) {
-            console.error("Error al obtener chats del contacto:", contactChatsError);
-            return;
-        }
-
-        // Buscar el chat común entre el usuario y el contacto
-        const commonChat = userChatIds.find((chatId) => contactChats.some((item) => item.chat_id === chatId));
-
-        if (commonChat) {
-            // Si ya existe un chat, solo seleccionamos el contacto
-            onSelectContact({
-                id: contact.id,
-                username: contact.username,
-                avatar_url: contact.avatar_url || "/default-avatar.png",
-            });
-            return; // No crear un nuevo chat
-        }
-
-        // Si no existe el chat, crear uno nuevo
-        const { data: chatData, error: chatError } = await supabase
-            .from("chats")
-            .insert([{ name: `Chat entre ${user.username} y ${contact.username}`, created_at: new Date() }])
-            .select("id")
-            .single(); // Asegura que se obtenga solo un chat creado
-
-        if (chatError) {
-            console.error("Error al crear el chat:", chatError);
-            return;
-        }
-
-        if (!chatData) {
-            console.error("No se pudo crear el chat");
-            return;
-        }
-
-        const chatId = chatData.id;
-
-        // Agregar los miembros (el usuario actual y el contacto) en la tabla 'chat_members'
-        const { error: membersError } = await supabase
-            .from("chat_members")
-            .insert([
-                { chat_id: chatId, user_id: user.id },
-                { chat_id: chatId, user_id: contact.id }
-            ]);
-
-        if (membersError) {
-            console.error("Error al agregar miembros al chat:", membersError);
-            return;
-        }
-
-        // Si todo fue exitoso, se pasa el chat al componente padre o se puede manejar de otra manera
-        onSelectContact({
-            id: contact.id,
-            username: contact.username,
-            avatar_url: contact.avatar_url || "/default-avatar.png"
-        });
-
-        console.log("Chat creado y miembros agregados:", chatData);
+        setSearchResults(data || []);
     };
 
+    const handleCreateChat = async (contactId: string, username: string, avatar_url: string) => {
+        if (!user) return;
+    
+        try {
+            // Verificar si ya existe un chat entre estos dos usuarios
+            const { data: existingChat, error: chatFetchError } = await supabase
+                .from("chats")
+                .select("id")
+                .eq("is_group", false)
+                .filter("id", "in", `(${(
+                    await supabase
+                        .from("chat_members")
+                        .select("chat_id")
+                        .eq("user_id", user.id)
+                ).data?.map((chat) => chat.chat_id) || []})`)
+                .filter("id", "in", `(${(
+                    await supabase
+                        .from("chat_members")
+                        .select("chat_id")
+                        .eq("user_id", contactId)
+                ).data?.map((chat) => chat.chat_id) || []})`)
+                .maybeSingle();
+    
+            if (chatFetchError) throw chatFetchError;
+    
+            if (existingChat) {
+                onSelectContact({ id: contactId, username, avatar_url, chatId: existingChat.id });
+                return;
+            }
+    
+            // Verificar si el contacto ya existe
+            const { data: existingContact, error: contactFetchError } = await supabase
+                .from("contacts")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("contact_id", contactId)
+                .maybeSingle();
+    
+            if (contactFetchError) throw contactFetchError;
+    
+            let newContactId = existingContact?.id || null;
+    
+            // Si el contacto no existe, agregar solo el registro del usuario actual
+            if (!existingContact) {
+                const { data: newContact, error: contactInsertError } = await supabase
+                    .from("contacts")
+                    .insert([{ user_id: user.id, contact_id: contactId, status: "accepted" }])
+                    .select(); // Selecciona todos los campos
+    
+                if (contactInsertError) throw contactInsertError;
+    
+                newContactId = newContact[0]?.id;
+    
+                // Solo agregamos al estado la relación desde el usuario actual
+                setContacts((prevContacts) => [
+                    ...prevContacts,
+                    {
+                        id: newContact[0].id,
+                        user_id: newContact[0].user_id,
+                        contact_id: newContact[0].contact_id,
+                        status: newContact[0].status,
+                        users: {
+                            id: newContact[0].contact_id,
+                            username,
+                            avatar_url,
+                            email: "",
+                        },
+                    },
+                ]);
+            }
+    
+            // Crear un nuevo chat si no existía
+            const { data: newChat, error: chatError } = await supabase
+                .from("chats")
+                .insert([{ is_group: false }])
+                .select("id")
+                .single();
+    
+            if (chatError) throw chatError;
+    
+            // Agregar ambos usuarios a chat_members
+            const { error: membersError } = await supabase.from("chat_members").insert([
+                { chat_id: newChat.id, user_id: user.id },
+                { chat_id: newChat.id, user_id: contactId },
+            ]);
+    
+            if (membersError) throw membersError;
+    
+            // Seleccionar el nuevo chat
+            onSelectContact({ id: contactId, username, avatar_url, chatId: newChat.id });
+        } catch (error) {
+            console.error("Error creando el chat y agregando contacto:", error);
+        }
+    };
+    
+    
+    
+
     return (
-        <div className="w-1/4 text-white p-4 flex flex-col h-full" style={{ backgroundColor: "#14201e" }}>
+        <div className="w-1/4 text-white p-4 flex flex-col h-full bg-[#14201e]">
             <h2 className="text-lg font-semibold border-b border-gray-700 pb-2">Contactos</h2>
+
+            {showSearch && (
+                <div className="mt-2 mb-4">
+                    <div className="flex">
+                        <input
+                            type="text"
+                            placeholder="Buscar usuarios..."
+                            className="w-full p-2 rounded-l bg-[#1c2927] text-white border border-gray-700 focus:outline-none"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="px-3 bg-[#16544c] hover:bg-[#1b685f] transition rounded-r"
+                        >
+                            <Search size={18} color="white" />
+                        </button>
+                    </div>
+
+                    {searchResults.length > 0 && (
+                        <div className="bg-[#1c2927] p-2 rounded mt-2">
+                            <h3 className="text-sm text-gray-400">Usuarios encontrados:</h3>
+                            <ul>
+                                {searchResults.map((user) => (
+                                    <li
+                                        key={user.id}
+                                        className="p-2 flex items-center justify-between hover:bg-[#122e29] transition rounded"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <img
+                                                src={user.avatar_url || "/default-avatar.png"}
+                                                alt={user.username}
+                                                className="w-8 h-8 rounded-full object-cover"
+                                            />
+                                            <span>{user.username}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => handleCreateChat(user.id, user.username, user.avatar_url)}
+                                            className="p-2 bg-[#16544c] hover:bg-[#1b685f] transition rounded-full"
+                                        >
+                                            <UserPlus size={18} color="white" />
+                                        </button>
+
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+
             <ul className="flex-grow overflow-y-auto">
                 {contacts.length > 0 ? (
                     contacts.map((contact) => {
-                        const user = contact.users; // Aseguramos que user esté definido
-                        if (!user) {
-                            console.warn("Contacto sin información:", contact);
-                            return null; // Si no hay información del usuario, no mostramos el contacto
-                        }
+                        const user = contact.users;
+                        if (!user) return null;
 
                         return (
                             <li
@@ -168,7 +245,7 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                                 <button
                                     className="ml-auto p-2 rounded-full bg-[#122e29] hover:bg-[#16544c] transition"
                                     aria-label="Enviar mensaje"
-                                    onClick={() => handleMessageClick(user)}
+                                    onClick={() => onSelectContact(user)}
                                 >
                                     <MessageCircle size={20} color="white" />
                                 </button>
@@ -176,9 +253,17 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                         );
                     })
                 ) : (
-                    <p className="text-gray-400 mt-4">No hay contactos de MessageApp</p>
+                    <p className="text-gray-400 mt-4">No hay contactos en MessageApp</p>
                 )}
             </ul>
+
+            <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="mt-4 p-2 bg-[#16544c] hover:bg-[#1b685f] text-white rounded transition flex items-center justify-center"
+            >
+                <UserPlus size={20} className="mr-2" />
+                {showSearch ? "Cerrar búsqueda" : "Agregar usuarios"}
+            </button>
         </div>
     );
 };
