@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --primary-bg: #121212;
+  --secondary-bg: #1e1e1e;
+  --accent-color: #25d366;
+  --text-color: #e0e0e0;
+  --input-bg: #2a2a2a;
+  --input-border: #333;
+}
+
+body {
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+  font-family: "Inter", sans-serif;
+}
+
+button {
+  cursor: pointer;
+}
+
+input, button {
+  outline: none;
+}
+
+a {
+  text-decoration: none;
+  color: var(--accent-color);
+}
+
+a:hover {
+  opacity: 0.8;
+}
