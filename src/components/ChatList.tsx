@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../utils/supabaseClient";
 import { User } from "../types/User.entity";
 import { Contact } from "../types/Contact.entity";
+import { UserPlus } from "lucide-react";
 
 interface ChatListProps {
     onSelectContact: (contact: { id: string; username: string; avatar_url: string; chatId?: string }) => void;
@@ -102,38 +103,51 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
     };
 
     return (
-        <div className="w-1/4 text-white p-4 flex flex-col h-full" style={{ backgroundColor: "#14201e" }}>
-            <h2 className="text-lg font-semibold border-b border-gray-700 pb-2">Chats</h2>
-            <ul className="flex-grow overflow-y-auto">
-                {contacts.length > 0 ? (
-                    contacts.map((contact) => {
-                        const user = contact.users; // Aseguramos que user esté definido
-                        if (!user) {
-                            console.warn("Contacto sin información:", contact);
-                            return null; // Si no hay información del usuario, no mostramos el contacto
-                        }
-
-                        return (
-                            <li
-                                key={contact.id}
-                                onClick={() => handleSelectContact(user)}
-                                className="p-2 border-b border-gray-700 cursor-pointer hover:bg-[#122e29] transition flex items-center gap-3"
-                            >
-                                <img
-                                    src={user.avatar_url || "/default-avatar.png"}
-                                    alt={user.username || "Avatar"}
-                                    className="w-10 h-10 rounded-full object-cover"
-                                />
-                                <span>{user.username}</span>
-                               
-                            </li>
-                        );
-                    })
-                ) : (
-                    <p className="text-gray-400 mt-4">No hay contactos de MessageApp</p>
-                )}
-            </ul>
+      <div className="w-full h-screen md:w-72 lg:w-80 text-white p-2 sm:p-4 flex flex-col" style={{ backgroundColor: "#14201e" }}>
+        <h2 className="text-lg font-semibold border-b border-gray-700 pb-2 px-2 mb-2">Chats</h2>
+        
+        <div className="flex-grow overflow-y-auto">
+          <ul>
+            {contacts.length > 0 ? (
+              contacts.map((contact) => {
+                const user = contact.users;
+                if (!user) {
+                  console.warn("Contacto sin información:", contact);
+                  return null;
+                }
+      
+                return (
+                  <li
+                    key={contact.id}
+                    onClick={() => handleSelectContact(user)}
+                    className="p-3 border-b border-gray-700 cursor-pointer hover:bg-[#122e29] transition flex items-center gap-3"
+                  >
+                    <img
+                      src={user.avatar_url || "/default-avatar.png"}
+                      alt={user.username || "Avatar"}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <span className="text-base truncate">{user.username}</span>
+                  </li>
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <p className="text-gray-400 text-sm">No hay contactos de MessageApp</p>
+                <p className="text-gray-500 text-xs mt-1">Agrega usuarios para comenzar</p>
+              </div>
+            )}
+          </ul>
         </div>
+        
+        <button
+          onClick={() => {/* función para agregar usuarios */}}
+          className="mt-auto mb-2 p-3 bg-[#16544c] hover:bg-[#1b685f] text-white rounded transition flex items-center justify-center text-sm"
+        >
+          <UserPlus className="w-5 h-5 mr-2" />
+          Agregar usuarios
+        </button>
+      </div>
     );
 };
 

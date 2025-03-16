@@ -15,8 +15,9 @@ export default function ChatArea({
 }: ChatAreaProps) {
   if (!contactId) {
     return (
-      <div className="flex-grow bg-[#232f35] text-white flex items-center justify-center">
-        <p className="text-gray-400 text-3xl text-center">
+      <div className="flex-grow bg-[#232f35] text-white flex flex-col items-center justify-center">
+        <img src="src\assets\logo.webp" alt="Chat" className="w-70 mb-5" />
+        <p className="text-gray-400 text-2xl text-center">
           Selecciona un chat para empezar <br /> a conversar 🚀
         </p>
       </div>

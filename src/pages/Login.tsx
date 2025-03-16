@@ -2,6 +2,7 @@ import { useState } from "react";
 import AuthForm from "../components/auth/AuthForm";
 import authService from "../services/authService";
 import Dashboard from "./Dashboard";
+import logo from "../assets/logo.webp";
 import { useAuth } from "../hooks/useAuth";  // Importa el hook useAuth
 
 const Login = () => {
@@ -33,12 +34,30 @@ const Login = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <AuthForm type={isRegister ? "register" : "login"} onSubmit={handleSubmit} />
-
-      {error && <p className="mt-4 text-red-500">{error}</p>}
-
-      <button onClick={handleToggleForm} className="mt-4 text-[var(--accent-color)] hover:underline">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 w-full">
+      <img 
+        src={logo} 
+        alt="FlowChat Logo" 
+        className="mb-6 md:mb-8 w-32 md:w-40 lg:w-48" 
+      />
+      
+      <div className="w-full max-w-md">
+        <AuthForm 
+          type={isRegister ? "register" : "login"} 
+          onSubmit={handleSubmit} 
+        />
+      </div>
+  
+      {error && (
+        <p className="mt-3 text-red-500 text-sm md:text-base text-center">
+          {error}
+        </p>
+      )}
+  
+      <button 
+        onClick={handleToggleForm} 
+        className="mt-4 text-sm md:text-base text-[var(--accent-color)] hover:underline focus:outline-none rounded px-2 py-1"
+      >
         {isRegister ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
       </button>
     </div>

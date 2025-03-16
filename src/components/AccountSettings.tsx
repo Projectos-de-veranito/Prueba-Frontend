@@ -102,79 +102,80 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
     
 
     return (
-        <div className="w-1/4 h-full flex flex-col p-6" style={{ backgroundColor: "#1a2c28" }}>
-            {/* Botón de regreso */}
-            <button onClick={() => setView("config")} className="text-white flex items-center mb-4 font-bold">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Ajustes de Cuenta
-            </button>
-
-            {/* Contenedor con imagen y efecto hover */}
-            <div className="relative flex flex-col items-center mt-15 mb-10">
-                {/* Imagen de perfil */}
-                <img
-                    src={user?.avatar_url || "/default-avatar.png"}
-                    alt="Avatar"
-                    className="w-50 h-50 rounded-full border-2 border-green-950 object-cover cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()} // Activa el input al hacer clic en la imagen
-                />
-
-                {/* Overlay con efecto hover */}
-                <div
-                    className="absolute w-50 h-50 flex flex-col items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-50 transition-opacity duration-300 cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()} // Activa el input al hacer clic en el overlay
-                >
-                    <Camera className="w-6 h-6 text-white mb-1" />
-                    <p className="text-xs text-white text-center font-semibold">
-                        CAMBIAR FOTO<br />DE PERFIL
-                    </p>
-                </div>
-
-                {/* Input oculto para seleccionar imagen */}
+        <div className="w-full h-full min-h-screen flex flex-col p-4 sm:p-6 bg-[#1a2c28] overflow-y-auto">
+          {/* Botón de regreso */}
+          <button onClick={() => setView("config")} className="text-white flex items-center mb-4 font-bold text-sm sm:text-base">
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Ajustes de Cuenta
+          </button>
+      
+          {/* Contenedor con imagen y efecto hover - centrado en móvil */}
+          <div className="relative flex flex-col items-center mt-4 sm:mt-10 mb-6 sm:mb-10">
+            {/* Imagen de perfil */}
+            <img
+              src={user?.avatar_url || "/default-avatar.png"}
+              alt="Avatar"
+              className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-2 border-green-950 object-cover cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            />
+      
+            {/* Overlay con efecto hover */}
+            <div
+              className="absolute w-28 h-28 sm:w-40 sm:h-40 flex flex-col items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-50 transition-opacity duration-300 cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white mb-1" />
+              <p className="text-xs text-white text-center font-semibold px-2">
+                CAMBIAR FOTO<br />DE PERFIL
+              </p>
+            </div>
+      
+            {/* Input oculto para seleccionar imagen */}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
+          </div>
+      
+          {/* Nombre editable */}
+          <div className="mt-4 sm:mt-6 w-full">
+            <p className="text-xs sm:text-sm text-green-500 mb-1">Tu Nombre</p>
+            <div className="flex items-center">
+              {isEditing ? (
                 <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-transparent text-white px-1 py-1 border-b border-gray-500 focus:outline-none focus:border-green-500 transition w-full text-sm sm:text-lg"
+                  autoFocus
                 />
+              ) : (
+                <p className="text-base sm:text-lg font-semibold text-white flex-grow truncate">{username}</p>
+              )}
+      
+              {/* Botón de editar/guardar con hover circular */}
+              <button
+                onClick={() => {
+                  if (isEditing) {
+                    handleUpdate();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
+                className="ml-2 p-1.5 sm:p-2 rounded-full transition duration-200 hover:bg-[#1b3833] flex-shrink-0"
+              >
+                {isEditing ? (
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                ) : (
+                  <Pencil className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                )}
+              </button>
             </div>
-
-            {/* Nombre editable */}
-            <div className="mt-6 w-full">
-                <p className="text-sm text-green-500 mb-1">Tu Nombre</p>
-                <div className="flex items-center">
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="bg-transparent text-white px-1 py-1 border-b border-gray-500 focus:outline-none focus:border-green-500 transition w-full"
-                        />
-                    ) : (
-                        <p className="text-lg font-semibold text-white flex-grow">{username}</p>
-                    )}
-
-                    {/* Botón de editar/guardar con hover circular */}
-                    <button
-                        onClick={() => {
-                            if (isEditing) {
-                                handleUpdate();
-                            } else {
-                                setIsEditing(true);
-                            }
-                        }}
-                        className="ml-2 p-2 rounded-full transition duration-200 hover:bg-[#1b3833]"
-                    >
-                        {isEditing ? (
-                            <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                            <Pencil className="w-5 h-5 text-white" />
-                        )}
-                    </button>
-                </div>
-            </div>
+          </div>
         </div>
-    );
+      );
 };
 
 export default AccountSettings;

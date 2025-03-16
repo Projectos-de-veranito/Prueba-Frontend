@@ -24,31 +24,36 @@ const Dashboard = () => {
     setSelectedChat(null); // Limpiar el chat seleccionado si cambiamos de vista
   };
   return (
-    <div className="flex h-screen">
-      <Navbar setActiveView={setActiveView} />
-      <div className="ml-16 flex-grow flex">
-        {activeView === "chats" && <ChatList onSelectContact={handleSelectContact} />}
-        {activeView === "contacts" && <ContactList onSelectContact={handleSelectContact} />}
-        {activeView === "config" && <Config setView={setActiveView} />}
-        {activeView === "account" && <AccountSettings setView={setActiveView} />}
+    <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
+      <div className="w-full md:w-16 h-16 md:h-screen fixed md:static bottom-0 left-0 right-0 md:bottom-auto z-10">
+        <Navbar setActiveView={setActiveView} />
+      </div>
+      
+      <div className="flex flex-col md:flex-row flex-grow w-full md:ml-16 pt-4 md:pt-0 pb-16 md:pb-0 overflow-hidden">
+        <div className="w-full md:w-72 lg:w-80 md:flex-shrink-0">
+          {activeView === "chats" && <ChatList onSelectContact={handleSelectContact} />}
+          {activeView === "contacts" && <ContactList onSelectContact={handleSelectContact} />}
+          {activeView === "config" && <Config setView={setActiveView} />}
+          {activeView === "account" && <AccountSettings setView={setActiveView} />}
+        </div>
   
-        {/* Si hay un chat o contacto seleccionado, mostramos el chat. Si no, mostramos la pantalla de bienvenida */}
-        {user ? (
-          (selectedChat || selectedContact) ? (
-            <ChatArea
-              senderId={user.id}
-              contactId={selectedChat?.id || selectedContact?.id || ""}
-              contactName={selectedContact?.username || selectedChat?.name || "Chat"}
-              contactAvatar={selectedContact?.avatar_url || ""}
-            />
-          ) : (
-            <ChatArea senderId={user.id} /> // Renderiza el mensaje de bienvenida
-          )
-        ) : null}
+        <div className="flex-grow h-full overflow-hidden">
+          {user ? (
+            (selectedChat || selectedContact) ? (
+              <ChatArea
+                senderId={user.id}
+                contactId={selectedChat?.id || selectedContact?.id || ""}
+                contactName={selectedContact?.username || selectedChat?.name || "Chat"}
+                contactAvatar={selectedContact?.avatar_url || ""}
+              />
+            ) : (
+              <ChatArea senderId={user.id} /> // Renderiza el mensaje de bienvenida
+            )
+          ) : null}
+        </div>
       </div>
     </div>
   );
-  
 };
 
 export default Dashboard;
