@@ -12,7 +12,7 @@
 
 ## Description
 
-FlowChat's frontend is a modern, responsive user interface built using React, TypeScript, and Vite. It provides an intuitive experience for real-time messaging, user management, and file sharing while connecting to the FlowChat NestJS backend.
+[FlowChat](https://flowchat-rdri.netlify.app/)'s frontend is a modern, responsive user interface built using React, TypeScript, and Vite. It provides an intuitive experience for real-time messaging, user management, and file sharing while connecting to the FlowChat NestJS backend.
 
 ## Project Structure
 
