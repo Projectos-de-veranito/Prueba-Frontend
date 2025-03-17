@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, useContext } from "react";
 import { supabase } from "../utils/supabaseClient";
 
 interface ChatContextType {
+  currentChatId?: string;
   messages: any[];
   sendMessage: (message: string, receiverId: string) => void;
 }

@@ -224,6 +224,7 @@ class ChatService {
             content: content?.trim() || null,
             media_url: mediaUrl || null,
             created_at: new Date().toISOString(),
+            updated_at: null,
             read: false
           }
         ])

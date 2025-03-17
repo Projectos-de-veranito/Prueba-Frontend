@@ -10,9 +10,12 @@ interface Message {
   sender_id: string;
   content?: string;
   created_at: string;
+  edited_at?: string;
+  updated_at?: string;
   media_url?: string;
   file_size?: number;
   isTemp?: boolean;
+  isEdited?: boolean;
 }
 
 interface Chat {
@@ -24,6 +27,8 @@ interface ChatBoxProps {
   senderId: string;
   receiverId: string;
 }
+
+
 
 const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,13 +45,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const previousMessagesRef = useRef<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const sortMessagesByDate = (msgs: Message[]) => {
-    return [...msgs].sort((a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-  };
-
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
+  const initialLoadRef = useRef<boolean>(true);
   useEffect(() => {
     if (!receiverId) {
       setError("ID de receptor no válido");
@@ -95,7 +95,12 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       // Actualizar el mensaje manteniendo el orden original
       setMessages(messages.map((msg) =>
         msg.id === editingMessage.id
-          ? { ...updatedMessage, created_at: editingMessage.created_at }  // Mantener la fecha original para conservar el orden
+          ? {
+            ...msg,
+            content: updatedMessage.content,
+            updated_at: updatedMessage.updated_at,
+            isEdited: true
+          }
           : msg
       ));
 
@@ -183,22 +188,42 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   }, [chat?.id]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messageContainerRef.current) {
+      // En un contenedor flex-col-reverse, scrollTop = 0 significa estar en el final visual (mensajes más recientes)
+      messageContainerRef.current.scrollTop = 0;
+    }
   };
 
-  // Desplazarse al último mensaje cuando se cargan los mensajes o se envía un nuevo mensaje
+  // Modificado para manejar el scroll correctamente con contenedor invertido
   useEffect(() => {
-    scrollToBottom();
+    // Solo para mensajes nuevos (no para la carga inicial)
+    if (messages.length > 0 && !initialLoadRef.current) {
+      scrollToBottom();
+    }
+
+    // En la carga inicial
+    if (initialLoadRef.current && messages.length > 0) {
+      initialLoadRef.current = false;
+
+      // Con flex-col-reverse, scrollTop = 0 ya muestra los mensajes más recientes
+      if (messageContainerRef.current) {
+        messageContainerRef.current.scrollTop = 0;
+      }
+    }
   }, [messages]);
 
   const fetchMessages = async (chatId: string) => {
     try {
       const response = await ChatService.getMessages(chatId);
-      setMessages(sortMessagesByDate(response));
+      setMessages(response.map(msg => ({
+        ...msg,
+        isEdited: msg.updated_at !== null // Mantiene el estado de editado después de recargar
+      })));
     } catch (error: any) {
       setError("Error al cargar los mensajes: " + (error.message || "Desconocido"));
     }
   };
+
 
   // Actualiza tu método de suscripción:
   useEffect(() => {
@@ -249,21 +274,21 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             setMessages(prevMessages =>
-              prevMessages.map(msg => msg.id === payload.new.id ? payload.new as Message : msg)
+              prevMessages.map(msg =>
+                msg.id === payload.new.id
+                  ? {
+                    ...msg,
+                    content: payload.new.content,
+                    updated_at: payload.new.updated_at,
+                    isEdited: payload.new.updated_at !== payload.new.created_at
+                  }
+                  : msg
+              ),
             );
           }
         }
       )
-      .subscribe((status) => {
-        console.log('Estado de suscripción:', status);
-
-        // Verificar si la suscripción fue exitosa
-        if (status === 'SUBSCRIBED') {
-          console.log('Suscripción exitosa al canal:', channelName);
-        } else {
-          console.error('Error en la suscripción:', status);
-        }
-      });
+      .subscribe();
 
     // Limpiar la suscripción
     return () => {
@@ -408,6 +433,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       sender_id: senderId,
       content: message || undefined,
       created_at: new Date().toISOString(),
+      updated_at: undefined,
       // Add a flag to indicate this is a temporary message
       isTemp: true
     };
@@ -436,7 +462,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         chat?.id!,
         senderId,
         message || undefined,
-        media_url || undefined
+        media_url || undefined,
       );
 
       // Reset the input fields
@@ -462,10 +488,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       {loading && <p className="text-gray-400">Cargando...</p>}
       {error && <p className="text-red-500">{error}</p>}
 
-      <div className="flex flex-col flex-grow overflow-y-auto space-y-2 sm:space-y-3 p-1 sm:p-2 w-full">
+      <div
+        ref={messageContainerRef}
+        className="flex flex-col-reverse flex-grow overflow-y-auto p-1 sm:p-2 sm:pb-2 pb-2 w-full space-y-2 sm:space-y-3 max-h-[calc(100vh-150px)]"
+        >
+
         {
           messages.length > 0 ? (
-            messages.map((message, index) => {
+            [...messages].reverse().map((message, index) => {
               const formattedTime = new Date(message.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -475,13 +505,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
               return (
                 <div
                   key={index}
-                  className={`group relative p-2 sm:p-3 rounded-lg max-w-[80%] sm:max-w-xs flex items-end space-x-1 sm:space-x-2 ${message.sender_id === senderId ? "bg-[#00af78] self-end" : "bg-[#1f2928] self-start"
+                  className={`group relative p-2 sm:p-3 rounded-lg max-w-[80%] sm:max-w-xs flex flex-col ${message.sender_id === senderId ? "bg-[#00af78] self-end" : "bg-[#1f2928] self-start"
                     }`}
                 >
                   {/* Si el mensaje tiene un archivo (imagen, video o archivo) lo mostramos */}
                   {message.media_url ? (
                     (() => {
-                      const urlWithoutToken = message.media_url.split("?token=")[0];
+                      const urlWithoutToken = typeof message.media_url === 'string' ?
+                        message.media_url.split("?token=")[0] : '';
                       const fileNameWithExt = urlWithoutToken.substring(urlWithoutToken.lastIndexOf("-") + 1);
                       const extension = fileNameWithExt.split(".").pop()?.toLowerCase() || "";
                       const fileSize = message.file_size ? `${(message.file_size / (1024 * 1024)).toFixed(1)} MB` : "";
@@ -539,17 +570,26 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
                       }
                     })()
                   ) : (
-                    // Mostrar el mensaje de texto cuando no hay archivo
-                    <p className="text-white text-sm sm:text-base break-words">{message.content}</p>
+                    <div className="flex flex-col w-full min-w-10">
+                      <p className={`text-white text-sm sm:text-base break-words whitespace-normal overflow-wrap-anywhere ${message.content && message.content.length < 30 ? "leading-snug py-0" : "leading-normal py-0.5"}`}>
+                        {message.content}
+                      </p>
+                      <div className="flex justify-end mt-1">
+                        {message.isEdited == true && (
+                          <span className="text-xs text-gray-400 ml-1 mr-1">Editado</span>
+                        )}
+                        <span className="text-xs text-gray-300">{formattedTime}</span>
+                      </div>
+                    </div>
                   )}
 
-                  <span className="text-xs text-gray-300 min-w-[38px] sm:min-w-[40px] text-right">{formattedTime}</span>
 
                   {/* Mostrar el botón ChevronDown solo para los mensajes enviados por el usuario actual */}
                   {message.sender_id === senderId && (
                     <button
                       onClick={() => setSelectedMessage(message)}
-                      className="absolute -top-0.5 -right-1 p-1 rounded-full bg-black/50 text-white opacity-80 hover:opacity-100 group-hover:flex hidden">
+                      className="absolute -top-0.5 -right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-80 hover:opacity-100 transition-opacity"
+                    >
                       <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                   )}
@@ -562,54 +602,66 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
             </div>
           )
         }
+        <div ref={messagesEndRef} />
       </div>
 
       {filePreview && (
-        <div className="flex items-center bg-[#1a2424] p-2 rounded-lg mb-2">
+        <div className="flex items-center bg-[#1a2424] sm:p-2 p-2 rounded-lg mb-2">
           {file?.type.startsWith("image/") ? (
             <img src={filePreview} alt="Vista previa" className="max-h-24 sm:max-h-32 max-w-24 sm:max-w-32 rounded-lg" />
           ) : file?.type.startsWith("video/") ? (
             <video controls className="max-h-24 sm:max-h-32 max-w-24 sm:max-w-32 rounded-lg">
               <source src={filePreview} type={fileType || undefined} />
             </video>
-          ) :
+          ) : (
             <div className="flex flex-col min-w-[40px] sm:min-w-50 px-2 sm:px-5 py-2 items-center justify-center bg-[#263130] rounded-lg">
-              <File className="flex center m-1 sm:m-2 w-4 h-4 sm:w-6 sm:h-6" />
+              <File className="m-1 sm:m-2 w-4 h-4 sm:w-6 sm:h-6" />
               <span className="text-white overflow-ellipsis overflow-hidden whitespace-nowrap max-w-[100px] sm:max-w-[200px] text-center text-xs sm:text-sm">
                 {file?.name}
               </span>
-              <span className="text-xs text-gray-400 m-1 sm:m-2">{file?.type.split('/')[1].toUpperCase()}</span>
+              <span className="text-xs text-gray-400 m-1 sm:m-2">{file?.type.split('/')[1]?.toUpperCase()}</span>
             </div>
-          }
+          )}
           <button onClick={handleRemoveFile} className="ml-2 p-2 rounded-full text-red-500">
             <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       )}
 
-      <div className="flex items-center pb-2 sm:pb-0">
-        <label className="cursor-pointer p-2 rounded-full bg-[#1e3833] hover:bg-[#14a08959] transition mr-2">
-          <Paperclip className="text-[#17c2a4] w-4 h-4 sm:w-5 sm:h-5" />
-          <input type="file" onChange={handleFileChange} className="hidden" />
-        </label>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-grow bg-[#1a2424] rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base"
-          placeholder="Escribe un mensaje"
-        />
-        <button onClick={handleSendMessage} className="ml-2 p-2 sm:p-3 rounded-full text-[#17c2a4] hover:bg-[#1e3833]">
-          <Send className="w-4 h-4 sm:w-5 sm:h-5 text-[#00af78]" />
-        </button>
-      </div>
+<div className=" bottom-0 left-0 right-0 bg-[#202c2d] pb-35 p-2 sm:p-1 flex items-center gap-2 sm:gap-3">
+  {/* Botón para adjuntar archivos */}
+  <label className="cursor-pointer p-2 rounded-full bg-[#1e3833] hover:bg-[#14a08959] transition">
+    <Paperclip className="text-[#17c2a4] w-5 h-5 sm:w-6 sm:h-6" />
+    <input type="file" onChange={handleFileChange} className="hidden" />
+  </label>
 
-      {/* Modal mejorado con mejor estilo */}
+  {/* Input de mensaje */}
+  <input
+    type="text"
+    value={message}
+    onChange={(e) => setMessage(e.target.value)}
+    onKeyDown={handleKeyDown}
+    className="flex-grow min-w-[150px] sm:min-w-[250px] bg-[#1a2424] rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base"
+    placeholder="Escribe un mensaje..."
+  />
+
+  {/* Botón de enviar */}
+  <button
+    onClick={handleSendMessage}
+    className="p-2 sm:p-3 rounded-full text-[#17c2a4] hover:bg-[#1e3833] transition"
+    disabled={message.trim() === '' && !file}
+  >
+    <Send className={`w-5 h-5 sm:w-6 sm:h-6 text-[#00af78] ${(message.trim() === '' && !file) ? 'opacity-50' : ''}`} />
+  </button>
+</div>
+
+      {/* Modal para opciones de mensaje */}
       {selectedMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 transition-opacity duration-300 ease-out px-4">
-          <div className="bg-[#263337] text-white p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-xs sm:w-80 transition-transform duration-300 ease-out transform scale-95 border border-[#32444a]"
-            style={{ opacity: 1, transform: "scale(1)" }}>
+          <div
+            className="bg-[#263337] text-white p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-xs sm:w-80 transition-transform duration-300 ease-out transform scale-95 border border-[#32444a]"
+            style={{ opacity: 1, transform: "scale(1)" }}
+          >
             <h2 className="text-base sm:text-lg font-semibold mb-4 sm:mb-5 border-b border-[#32444a] pb-2 text-center">Opciones del Mensaje</h2>
 
             <button
@@ -639,6 +691,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         </div>
       )}
 
+      {/* Modal para editar mensaje */}
       {editingMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 px-4">
           <div className="bg-[#263337] text-white p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-xs sm:w-80 border border-[#32444a]">
@@ -647,7 +700,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
               type="text"
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
-              className="w-full p-2 sm:p-3 rounded-lg bg-[#1a2424] text-white border border-[#32444a] focus:outline-none focus:border-[#17c2a4] text-center text-sm sm:text-base"
+              className="w-full p-2 sm:p-3 rounded-lg bg-[#1a2424] text-white border border-[#32444a] focus:outline-none focus:border-[#17c2a4] text-sm sm:text-base"
+              autoFocus
             />
             <div className="flex justify-center mt-3 sm:mt-4 space-x-2 sm:space-x-3">
               <button
@@ -659,6 +713,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
               <button
                 onClick={handleSaveEdit}
                 className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[#00af78] text-white hover:bg-[#008b60] transition-colors duration-200 text-center text-sm sm:text-base"
+                disabled={editedContent.trim() === ''}
               >
                 Guardar
               </button>

@@ -7,3 +7,27 @@
   min-height: 100vh;
   background: var(--primary-bg);
 }
+
+/* Para navegadores basados en WebKit (Chrome, Safari, Edge moderno) */
+::-webkit-scrollbar {
+  width: 10px;  /* ancho de la barra */
+}
+
+::-webkit-scrollbar-track {
+  background: #ffc0c0;  /* color del fondo */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ff0000;  /* color de la barra */
+  border-radius: 5px;  /* bordes redondeados */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff0000;  /* color al pasar el ratón */
+}
+
+/* Para Firefox */
+* {
+  scrollbar-width: thin;  /* "auto", "thin" o "none" */
+  scrollbar-color: #888 #f1f1f1;  /* color de la barra y del fondo */
+}
