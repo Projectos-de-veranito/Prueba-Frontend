@@ -3,13 +3,11 @@ const NotFound = () => {
     return (
         <div className="flex flex-col h-screen bg-black text-white justify-center items-center p-4">
             <div className="flex flex-col items-center max-w-md w-full">
-                {/* FlowChat Logo */}
                 <div className="mb-8">
                     <img src="src\assets\logo.webp" alt="Logo" width="120" height="60" />
                 </div>
 
 
-                {/* 404 Message */}
                 <div className="bg-[#243333] rounded-lg p-8 w-full text-center shadow-lg border border-gray-800">
                     <h1 className="text-6xl md:text-8xl font-bold text-[#25d368] mb-4">404</h1>
                     <div className="h-1 w-16 bg-green-500 mx-auto mb-6"></div>

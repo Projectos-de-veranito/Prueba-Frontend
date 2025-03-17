@@ -92,7 +92,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         senderId
       );
 
-      // Actualizar el mensaje manteniendo el orden original
       setMessages(messages.map((msg) =>
         msg.id === editingMessage.id
           ? {
@@ -119,7 +118,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       return;
     }
 
-    // Comprobar si es un mensaje temporal
     if (messageId.startsWith('temp-')) {
       setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
       setSelectedMessage(null);
@@ -127,11 +125,9 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
     }
 
     try {
-      // Actualización optimista
       setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
       setSelectedMessage(null);
 
-      // 1. Primero crear un evento para notificar a otros usuarios
       await ChatService.createChatEvent(
         chat.id,
         'message_deleted',
@@ -139,10 +135,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         senderId
       );
 
-      // 2. Luego eliminar el mensaje
       await ChatService.deleteMessage(chat.id, messageId, senderId);
     } catch (error: any) {
-      // Revertir en caso de error
       fetchMessages(chat.id);
       alert("Error al eliminar el mensaje: " + (error.message || "Desconocido"));
       console.error(error);
@@ -170,7 +164,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
             const deletedMessageId = payload.new.message_id;
             console.log('Procesando evento de eliminación para mensaje:', deletedMessageId);
 
-            // Actualizar el estado para eliminar el mensaje
             setMessages(prevMessages =>
               prevMessages.filter(msg => msg.id !== deletedMessageId)
             );
@@ -189,23 +182,18 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
 
   const scrollToBottom = () => {
     if (messageContainerRef.current) {
-      // En un contenedor flex-col-reverse, scrollTop = 0 significa estar en el final visual (mensajes más recientes)
       messageContainerRef.current.scrollTop = 0;
     }
   };
 
-  // Modificado para manejar el scroll correctamente con contenedor invertido
   useEffect(() => {
-    // Solo para mensajes nuevos (no para la carga inicial)
     if (messages.length > 0 && !initialLoadRef.current) {
       scrollToBottom();
     }
 
-    // En la carga inicial
     if (initialLoadRef.current && messages.length > 0) {
       initialLoadRef.current = false;
 
-      // Con flex-col-reverse, scrollTop = 0 ya muestra los mensajes más recientes
       if (messageContainerRef.current) {
         messageContainerRef.current.scrollTop = 0;
       }
@@ -217,7 +205,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       const response = await ChatService.getMessages(chatId);
       setMessages(response.map(msg => ({
         ...msg,
-        isEdited: msg.updated_at !== null // Mantiene el estado de editado después de recargar
+        isEdited: msg.updated_at !== null
       })));
     } catch (error: any) {
       setError("Error al cargar los mensajes: " + (error.message || "Desconocido"));
@@ -225,20 +213,18 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   };
 
 
-  // Actualiza tu método de suscripción:
   useEffect(() => {
     if (!chat?.id) return;
 
     console.log('Configurando suscripción para chat:', chat.id);
 
-    // 1. Crear un canal con un nombre único usando timestamp
     const channelName = `messages:${chat.id}:${Date.now()}`;
 
     const messagesChannel = supabase
       .channel(channelName)
       .on('postgres_changes',
         {
-          event: '*', // Suscribirse a todos los eventos para mayor fiabilidad
+          event: '*', 
           schema: 'public',
           table: 'messages',
           filter: `chat_id=eq.${chat.id}`
@@ -247,13 +233,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
           console.log('Evento recibido:', payload.eventType, payload);
 
           if (payload.eventType === 'DELETE') {
-            // Log detallado para depuración
             console.log('Procesando DELETE:', payload);
             console.log('ID del mensaje eliminado:', payload.old?.id);
 
             if (payload.old && payload.old.id) {
               setMessages(currentMessages => {
-                // Usar una función para asegurarnos de que estamos trabajando con el estado más reciente
                 console.log('Filtrando mensaje:', payload.old.id);
                 console.log('Mensajes antes:', currentMessages.length);
 
@@ -290,7 +274,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       )
       .subscribe();
 
-    // Limpiar la suscripción
     return () => {
       console.log('Limpiando suscripción para chat:', chat.id);
       supabase.removeChannel(messagesChannel);
@@ -316,13 +299,13 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
 
 
   const getFileNameFromUrl = (url: string) => {
-    if (!url) return "archivo"; // Nombre predeterminado si no hay URL
-    const urlWithoutToken = url.split("?token=")[0]; // Elimina el token
-    return urlWithoutToken.split("/").pop() || "archivo"; // Obtiene el nombre del archivo
+    if (!url) return "archivo";
+    const urlWithoutToken = url.split("?token=")[0]; 
+    return urlWithoutToken.split("/").pop() || "archivo"; 
   };
 
   const handleDownload = async (fileUrl: string) => {
-    const fileName = getFileNameFromUrl(fileUrl); // Obtiene el nombre del archivo
+    const fileName = getFileNameFromUrl(fileUrl);
 
     try {
       const response = await fetch(fileUrl);
@@ -331,11 +314,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName; // Asigna el nombre del archivo
+      a.download = fileName; 
       document.body.appendChild(a);
       a.click();
 
-      // Limpieza
+
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
@@ -353,31 +336,30 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
     if (!url) return null;
 
     try {
-      // Extraer solo el path relativo desde la URL completa
       const filePath = url.includes("/object/sign/uploads/")
-        ? url.split("/object/sign/uploads/")[1]?.split("?")[0] // Obtiene solo la parte relevante
+        ? url.split("/object/sign/uploads/")[1]?.split("?")[0]
         : url.includes("/uploads/")
           ? url.split("/uploads/")[1]?.split("?")[0]
           : url;
 
       if (!filePath) {
-        console.error("❌ No se pudo extraer el path del archivo.");
+        console.error("No se pudo extraer el path del archivo.");
         return null;
       }
 
-      console.log("📂 Path procesado:", filePath);
+      console.log("Path procesado:", filePath);
 
       const { data, error } = await supabase.storage.from("uploads").createSignedUrl(filePath, 3600);
 
       if (error || !data?.signedUrl) {
-        console.error("❌ Error obteniendo URL firmada:", error);
+        console.error("Error obteniendo URL firmada:", error);
         return null;
       }
 
-      console.log("✅ URL firmada obtenida:", data.signedUrl);
+      console.log("URL firmada obtenida:", data.signedUrl);
       return data.signedUrl;
     } catch (err) {
-      console.error("❌ Error en getImageUrl:", err);
+      console.error("Error en getImageUrl:", err);
       return null;
     }
   };
@@ -385,22 +367,22 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
 
   useEffect(() => {
     const loadSignedUrls = async () => {
-      console.log("🔄 Cargando URLs firmadas...");
+      console.log("Cargando URLs firmadas...");
 
       const updatedMessages: Message[] = await Promise.all(
         messages.map(async (msg) => {
-          if (!msg.media_url) return msg; // Si no tiene imagen, devolver el mensaje original
+          if (!msg.media_url) return msg;
 
           const mediaUrl = msg.media_url;
           if (imageUrls[mediaUrl]) {
-            console.log("⚡ Usando URL cacheada:", imageUrls[mediaUrl]);
+            console.log("Usando URL cacheada:", imageUrls[mediaUrl]);
             return { ...msg, media_url: imageUrls[mediaUrl] };
           }
 
-          console.log("🌐 Generando nueva URL firmada para:", mediaUrl);
+          console.log("Generando nueva URL firmada para:", mediaUrl);
           const signedUrl = await getImageUrl(mediaUrl);
           if (signedUrl) {
-            setImageUrls((prev) => ({ ...prev, [mediaUrl]: signedUrl })); // Cachear la URL firmada
+            setImageUrls((prev) => ({ ...prev, [mediaUrl]: signedUrl }));
             return { ...msg, media_url: signedUrl };
           }
 
@@ -409,7 +391,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       );
 
       if (JSON.stringify(previousMessagesRef.current) !== JSON.stringify(updatedMessages)) {
-        console.log("✅ Actualizando mensajes con URLs firmadas...");
+        console.log("Actualizando mensajes con URLs firmadas...");
         setMessages(updatedMessages);
         previousMessagesRef.current = updatedMessages;
       }
@@ -425,7 +407,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   const handleSendMessage = async () => {
     if (!message.trim() && !file) return;
 
-    // Create a temporary message object with a temporary ID
     const tempId = `temp-${Date.now()}`;
     const tempMessage: Message = {
       id: tempId,
@@ -434,11 +415,9 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       content: message || undefined,
       created_at: new Date().toISOString(),
       updated_at: undefined,
-      // Add a flag to indicate this is a temporary message
       isTemp: true
     };
 
-    // Add the temporary message to the UI
     setMessages(prevMessages => [...prevMessages, tempMessage]);
 
     let media_url: string | null = null;
@@ -457,7 +436,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
     console.log("Archivo subido con éxito:", media_url);
 
     try {
-      // Just send the message but don't update the state directly
       await ChatService.sendMessage(
         chat?.id!,
         senderId,
@@ -465,13 +443,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         media_url || undefined,
       );
 
-      // Reset the input fields
       setMessage("");
       setFile(null);
       setFilePreview(null);
       setFileType(null);
 
-      // The message will be added to the UI by the Supabase subscription
     } catch (error) {
       console.error("Error al enviar el mensaje:", error);
       alert("No se pudo enviar el mensaje. Intenta de nuevo.");
@@ -508,7 +484,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
                   className={`group relative p-2 sm:p-3 rounded-lg max-w-[80%] sm:max-w-xs flex flex-col ${message.sender_id === senderId ? "bg-[#00af78] self-end" : "bg-[#1f2928] self-start"
                     }`}
                 >
-                  {/* Si el mensaje tiene un archivo (imagen, video o archivo) lo mostramos */}
                   {message.media_url ? (
                     (() => {
                       const urlWithoutToken = typeof message.media_url === 'string' ?
@@ -584,7 +559,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
                   )}
 
 
-                  {/* Mostrar el botón ChevronDown solo para los mensajes enviados por el usuario actual */}
                   {message.sender_id === senderId && (
                     <button
                       onClick={() => setSelectedMessage(message)}
@@ -629,13 +603,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
       )}
 
 <div className=" bottom-0 left-0 right-0 bg-[#202c2d] pb-35 p-2 sm:p-1 flex items-center gap-2 sm:gap-3">
-  {/* Botón para adjuntar archivos */}
   <label className="cursor-pointer p-2 rounded-full bg-[#1e3833] hover:bg-[#14a08959] transition">
     <Paperclip className="text-[#17c2a4] w-5 h-5 sm:w-6 sm:h-6" />
     <input type="file" onChange={handleFileChange} className="hidden" />
   </label>
 
-  {/* Input de mensaje */}
   <input
     type="text"
     value={message}
@@ -645,7 +617,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
     placeholder="Escribe un mensaje..."
   />
 
-  {/* Botón de enviar */}
   <button
     onClick={handleSendMessage}
     className="p-2 sm:p-3 rounded-full text-[#17c2a4] hover:bg-[#1e3833] transition"
@@ -655,7 +626,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
   </button>
 </div>
 
-      {/* Modal para opciones de mensaje */}
       {selectedMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 transition-opacity duration-300 ease-out px-4">
           <div
@@ -691,7 +661,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
         </div>
       )}
 
-      {/* Modal para editar mensaje */}
       {editingMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 px-4">
           <div className="bg-[#263337] text-white p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-xs sm:w-80 border border-[#32444a]">

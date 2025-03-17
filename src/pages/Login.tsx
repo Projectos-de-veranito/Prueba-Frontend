@@ -3,22 +3,22 @@ import AuthForm from "../components/auth/AuthForm";
 import authService from "../services/authService";
 import Dashboard from "./Dashboard";
 import logo from "../assets/logo.webp";
-import { useAuth } from "../hooks/useAuth";  // Importa el hook useAuth
+import { useAuth } from "../hooks/useAuth"; 
 
 const Login = () => {
-  const { setUser } = useAuth();  // Obtén la función setUser del contexto de autenticación
+  const { setUser } = useAuth();  
   const [error, setError] = useState<string | null>(null);
   const [isRegister, setIsRegister] = useState<boolean>(false);
-  const [showChat, setShowChat] = useState<boolean>(false); // Estado para mostrar el chat
+  const [showChat, setShowChat] = useState<boolean>(false); 
 
   const handleSubmit = async (email: string, password: string, username?: string) => {
     try {
       if (isRegister) {
         await authService.register(email, password, username || "");
       } else {
-        await authService.login(email, password, setUser);  // Pasa setUser aquí
+        await authService.login(email, password, setUser);  
       }
-      setShowChat(true); // Muestra el chat después del registro o login
+      setShowChat(true);
     } catch (err: any) {
       setError(err.message || "Error al procesar");
     }
@@ -30,7 +30,7 @@ const Login = () => {
   };
 
   if (showChat) {
-    return <Dashboard />; // Renderiza el componente Chat sin cambiar la URL
+    return <Dashboard />;
   }
 
   return (

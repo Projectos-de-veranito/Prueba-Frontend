@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AuthForm from "./AuthForm";
 import authService from "../../services/authService";
-import Chat from "../../pages/Chat";
+import Dashboard from "../../pages/Dashboard";
 
 const RegisterForm = () => {
   const [isRegistered, setIsRegistered] = useState(false);
@@ -10,15 +10,14 @@ const RegisterForm = () => {
   const handleRegister = async (email: string, password: string, username?: string) => {
     try {
       await authService.register(email, password, username || "");
-      setIsRegistered(true); // Cambia el estado para mostrar el Chat
+      setIsRegistered(true);
     } catch (err: any) {
       setError(err.message || "Error al registrarse");
     }
   };
 
-  // Si el usuario ya se registró, mostrar el componente Chat en lugar del formulario
   if (isRegistered) {
-    return <Chat />;
+    return <Dashboard />;
   }
 
   return (

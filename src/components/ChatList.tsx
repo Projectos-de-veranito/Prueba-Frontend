@@ -61,16 +61,13 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
             console.log("Contactos formateados:", formattedContacts);
             setContacts(formattedContacts);
 
-            // Enfoque simplificado: obtener TODOS los mensajes recientes y relacionarlos con contactos
             await getMessagesDirectly(formattedContacts);
         };
 
-        // Enfoque alternativo más directo para obtener los mensajes
         const getMessagesDirectly = async (contacts: Contact[]) => {
             if (!user || contacts.length === 0) return;
 
             try {
-                // 1. Obtenemos todos los chats del usuario actual
                 const { data: userChatMemberships, error: chatMemberError } = await supabase
                     .from('chat_members')
                     .select('chat_id')
@@ -86,7 +83,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
 
                 const chatIds = userChatMemberships.map(m => m.chat_id);
 
-                // 2. Obtenemos información de todos estos chats
                 const { data: chats, error: chatsError } = await supabase
                     .from('chats')
                     .select('id, is_group')
@@ -95,7 +91,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                 if (chatsError) throw chatsError;
                 console.log("Chats obtenidos:", chats);
 
-                // 3. Filtramos solo los chats que no son grupos
                 const directChats = chats.filter(chat => !chat.is_group);
                 console.log("Chats directos:", directChats);
 
@@ -106,13 +101,11 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
 
                 const directChatIds = directChats.map(chat => chat.id);
 
-                // 4. Para cada chat directo, encontramos al otro miembro
                 const contactChatsMap: {
                     [contactId: string]: { chatId: string; lastMessage?: { content: string; created_at: string } }
                 } = {};
 
                 for (const chatId of directChatIds) {
-                    // 4.1 Obtener el otro miembro del chat
                     const { data: chatMembers, error: membersError } = await supabase
                         .from('chat_members')
                         .select('user_id')
@@ -129,14 +122,12 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                     const otherUserId = chatMembers[0].user_id;
                     console.log(`Chat ${chatId} con usuario ${otherUserId}`);
 
-                    // 4.2 Encontrar el contacto relacionado con este usuario
                     const relatedContact = contacts.find(contact =>
                         contact.users && contact.users.id === otherUserId
                     );
 
                     if (!relatedContact || !relatedContact.users) continue;
 
-                    // 4.3 Obtener el último mensaje de este chat
                     const { data: messages, error: messagesError } = await supabase
                         .from('messages')
                         .select('content, created_at')
@@ -169,7 +160,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
 
         fetchContacts();
 
-        // Suscripción a nuevos mensajes
         const messagesSubscription = supabase
             .channel('public:messages')
             .on('postgres_changes',
@@ -178,8 +168,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                     console.log("Nuevo mensaje recibido:", payload);
                     const message = payload.new;
                     
-                    // CAMBIO: Verificar si el usuario actual es quien envió el mensaje
-                    // Si el current user es el sender, no mostramos notificación
                     if (message.sender_id === user?.id) {
                         console.log("Mensaje enviado por el usuario actual, no se muestra notificación");
                         return;
@@ -224,8 +212,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                                     const username = contact?.users?.username?.trim() || "Desconocido";
                                     const messageContent = message.content || "Te ha enviado un archivo";
 
-                                    // Establecer el mensaje de notificación
-                                    // Solo se llega aquí si el usuario actual NO es el remitente
                                     setNotificationMessage(`Nuevo mensaje de ${username}: ${messageContent}`);
                                 }
                             });
@@ -255,7 +241,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
         }
     };
 
-    // Función para formatear la hora del último mensaje
     const formatMessageTime = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -281,7 +266,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                             if (lastMessage) {
                                 const content = lastMessage.content || "";
                                 const isUrl = (content: string) => {
-                                    // More comprehensive check for URLs and files
                                     return /^https?:\/\//.test(content) || 
                                            content.includes('supabase.co/storage') ||
                                            content.includes('data:image') ||  // For base64 encoded images
@@ -297,9 +281,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                                 }
                             }
                             
-
-                            
-    
                             return (
                                 <li
                                     key={contact.id}
@@ -341,7 +322,6 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
             )}
         </div>
     );
-    
 };
 
 export default ChatList;

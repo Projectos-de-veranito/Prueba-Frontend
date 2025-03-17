@@ -36,11 +36,10 @@ const Config = ({ setView }: { setView: (view: string) => void }) => {
         <div className="w-full md:w-72 lg:w-80 p-4 sm:p-6 flex flex-col min-h-screen md:min-h-0 md:h-full bg-[#14201e]">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-6">Ajustes</h2>
           
-          {/* Contenedor con avatar e información - más centrado en móvil */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start mb-8">
             {avatar ? (
               <img 
-                src={avatar} 
+                src={avatar || 'https://i.ibb.co/hRCDCFgs/perfil.png'}  
                 alt="Avatar" 
                 className="w-20 h-20 sm:w-16 sm:h-16 md:w-24 md:h-24 rounded-full border-2 border-green-950 mb-3 sm:mb-0 sm:mr-3 md:mr-5" 
               />
@@ -48,9 +47,7 @@ const Config = ({ setView }: { setView: (view: string) => void }) => {
             <p className="text-base sm:text-lg font-semibold text-white text-center sm:text-left truncate">{username}</p>
           </div>
           
-          {/* Sección de opciones - más espacio en móvil */}
           <div className="space-y-3 sm:space-y-4 w-full">
-            {/* Botón para ir a "Ajustes de Cuenta" con icono de usuario */}
             <button
               onClick={() => setView("account")}
               className="bg-[#122e29] text-white px-4 py-3 rounded-md hover:bg-[#16544c] transition flex items-center w-full text-left text-sm sm:text-base"
@@ -59,8 +56,6 @@ const Config = ({ setView }: { setView: (view: string) => void }) => {
               Ajustes de Cuenta
             </button>
           </div>
-          
-          {/* Botón de cerrar sesión - fijado en la parte inferior en móvil */}
           <div className="mt-auto pt-6">
             <button
               onClick={signOut}

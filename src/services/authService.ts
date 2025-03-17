@@ -60,7 +60,7 @@ const authService = {
       throw new Error("Error obteniendo usuario desde la base de datos.");
     }
 
-    setUser(userData); // Actualizamos el estado del usuario
+    setUser(userData); 
 
     return data.user;
   },

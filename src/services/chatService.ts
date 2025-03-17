@@ -1,10 +1,8 @@
 import { supabase } from "../utils/supabaseClient";
 
 class ChatService {
-  // Obtener todos los chats de un usuario
   async getChatsByUser(userId: string) {
     try {
-      // Obtener los chats en los que el usuario es miembro
       const { data, error } = await supabase
         .from("chat_members")
         .select("chat_id")
@@ -16,10 +14,9 @@ class ChatService {
       }
 
       if (!data || data.length === 0) {
-        return []; // Si no hay chats asociados, devolver un array vacío
+        return []; 
       }
 
-      // Obtener los detalles de esos chats
       const chatIds = data.map((member: any) => member.chat_id);
       const { data: chats, error: chatsError } = await supabase
         .from("chats")
@@ -31,14 +28,13 @@ class ChatService {
         throw new Error(chatsError.message || "Error al obtener los chats");
       }
 
-      return chats; // Retorna los chats encontrados
+      return chats; 
     } catch (error: any) {
       console.error("Error al obtener los chats:", error);
       throw new Error(error.message || "Error al obtener los chats");
     }
   }
 
-  // Obtener un chat por ID
   async getChatById(chatId: string, userId: string) {
     try {
       if (!chatId || !userId) {
@@ -47,13 +43,11 @@ class ChatService {
 
       console.log("Buscando chat con ID:", chatId);
 
-      // Buscar el chat directamente
       const { data: chat, error } = await supabase
         .from('chats')
         .select('*')
         .eq('id', chatId)
-        .maybeSingle();  // Asegura que devuelve solo un objeto en lugar de un array
-
+        .maybeSingle(); 
       if (error) {
         console.error("Error al obtener el chat:", error);
         throw new Error(error.message || "Error al obtener el chat");
@@ -64,13 +58,12 @@ class ChatService {
         throw new Error("El chat no existe.");
       }
 
-      // Verificar si el usuario es miembro
       const { data: members, error: membersError } = await supabase
         .from("chat_members")
         .select("user_id")
         .eq("chat_id", chatId)
         .eq("user_id", userId)
-        .single(); // Asegura que solo se obtiene un miembro
+        .single(); 
 
       if (membersError) {
         console.error("Error al obtener los miembros del chat:", membersError);
@@ -82,7 +75,7 @@ class ChatService {
         throw new Error("El chat no existe o el usuario no es miembro.");
       }
 
-      return chat; // Devuelve directamente el chat encontrado
+      return chat; 
     } catch (error: any) {
       console.error("Error al obtener el chat:", error);
       throw new Error(error.message || "Error al obtener el chat");
@@ -97,7 +90,6 @@ class ChatService {
 
       console.log(`Buscando chat entre ${user1Id} y ${user2Id}`);
 
-      // Buscar un chat donde ambos usuarios sean miembros
       const { data: chatMembers, error: chatMembersError } = await supabase
         .from("chat_members")
         .select("chat_id")
@@ -113,16 +105,14 @@ class ChatService {
         return null;
       }
 
-      // Extraer los chat_id de los que user1 es parte
       const chatIds = chatMembers.map((member: any) => member.chat_id);
 
-      // Verificar si user2 también está en alguno de esos chats
       const { data: commonChat, error: commonChatError } = await supabase
         .from("chat_members")
         .select("chat_id")
         .in("chat_id", chatIds)
         .eq("user_id", user2Id)
-        .maybeSingle(); // Solo queremos un chat en común
+        .maybeSingle(); 
 
       if (commonChatError) {
         console.error("Error al buscar el chat común:", commonChatError);
@@ -134,7 +124,6 @@ class ChatService {
         return null;
       }
 
-      // Obtener los detalles del chat encontrado
       const { data: chat, error: chatError } = await supabase
         .from("chats")
         .select("*")
@@ -153,7 +142,6 @@ class ChatService {
     }
   }
 
-  // Obtener los mensajes de un chat
   async getMessages(chatId: string, limit: number = 20, offset: number = 0) {
     try {
       if (!chatId) {
@@ -171,7 +159,7 @@ class ChatService {
         throw new Error(error.message || "Error al obtener los mensajes");
       }
 
-      return data; // Retorna los mensajes
+      return data;
     } catch (error: any) {
       console.error("Error al obtener los mensajes:", error);
       throw new Error(error.message || "Error al obtener los mensajes");
@@ -187,11 +175,10 @@ class ChatService {
 
     if (uploadError) throw new Error("Error al subir archivo: " + uploadError.message);
 
-    // Guardar solo la ruta del archivo en la BD
     const { error: insertError } = await supabase.from("uploads").insert({
       user_id: userId,
       chat_id: chatId,
-      file_url: filePath, // Guardamos el path, no una URL pública
+      file_url: filePath,
       file_type: file.type
     });
 
@@ -200,11 +187,6 @@ class ChatService {
     return filePath;
   }
 
-
-
-
-
-  // Enviar un mensaje en un chat
   async sendMessage(chatId: string, senderId: string, content?: string, mediaUrl?: string) {
     try {
       if (!chatId || !senderId) {
@@ -228,7 +210,7 @@ class ChatService {
             read: false
           }
         ])
-        .select(); // Asegura que devuelve los datos insertados
+        .select(); 
 
       if (error) {
         console.error("Error al enviar el mensaje:", error);
@@ -239,21 +221,19 @@ class ChatService {
         throw new Error("No se pudo enviar el mensaje.");
       }
 
-      return data[0]; // Retorna el mensaje enviado
+      return data[0]; 
     } catch (error: any) {
       console.error("Error al enviar el mensaje:", error);
       throw new Error(error.message || "Error al enviar el mensaje");
     }
   }
 
-  // Editar un mensaje en un chat
   async editMessage(chatId: string, messageId: string, newContent: string, userId: string) {
     try {
       if (!chatId || !messageId || !newContent.trim() || !userId) {
         throw new Error("El chatId, messageId, newContent y userId son obligatorios.");
       }
 
-      // Verificar si el mensaje pertenece al usuario (sender_id) o si el usuario es administrador del chat
       const { data: message, error: messageError } = await supabase
         .from("messages")
         .select("sender_id, chat_id")
@@ -269,9 +249,7 @@ class ChatService {
         throw new Error("El mensaje no existe.");
       }
 
-      // Verificar si el usuario es el remitente o tiene permisos de administrador
       if (message.sender_id !== userId) {
-        // Comprobar si el usuario es administrador del chat
         const { data: members, error: membersError } = await supabase
           .from("chat_members")
           .select("role")
@@ -289,7 +267,6 @@ class ChatService {
         }
       }
 
-      // Actualizar el mensaje con el nuevo contenido
       const { data, error } = await supabase
         .from("messages")
         .update({ content: newContent.trim(), updated_at: new Date().toISOString() })
@@ -303,16 +280,13 @@ class ChatService {
         throw new Error(error.message || "Error al editar el mensaje");
       }
 
-      return data; // Retorna el mensaje actualizado
+      return data;
     } catch (error: any) {
       console.error("Error al editar el mensaje:", error);
       throw new Error(error.message || "Error al editar el mensaje");
     }
   }
 
-
-
-  // Crear un nuevo chat
   async createChat(createChatDto: any) {
     try {
       const { data, error } = await supabase
@@ -327,14 +301,14 @@ class ChatService {
       if (!data) {
         throw new Error("No se pudo crear el chat.");
       }
-      return data[0]; // Retorna el chat creado
+      return data[0];
     } catch (error: any) {
       console.error("Error al crear el chat:", error);
       throw new Error(error.message || "Error al crear el chat");
     }
   }
 
-  // Añadir un miembro a un chat
+
   async addMember(chatId: string, userId: string) {
     try {
       const { data, error } = await supabase
@@ -346,14 +320,14 @@ class ChatService {
         throw new Error(error.message || "Error al agregar miembro");
       }
 
-      return data; // Retorna los miembros actualizados
+      return data;
     } catch (error: any) {
       console.error("Error al agregar miembro:", error);
       throw new Error(error.message || "Error al agregar miembro");
     }
   }
 
-  // Eliminar un miembro de un chat
+
   async removeMember(chatId: string, userId: string) {
     try {
       const { data, error } = await supabase
@@ -366,14 +340,14 @@ class ChatService {
         throw new Error(error.message || "Error al eliminar miembro");
       }
 
-      return data; // Retorna los miembros actualizados
+      return data; 
     } catch (error: any) {
       console.error("Error al eliminar miembro:", error);
       throw new Error(error.message || "Error al eliminar miembro");
     }
   }
 
-  // Obtener los miembros de un chat
+
   async getChatMembers(chatId: string) {
     try {
       const { data, error } = await supabase
@@ -386,23 +360,21 @@ class ChatService {
         throw new Error(error.message || "Error al obtener los miembros");
       }
 
-      return data; // Retorna los miembros del chat
+      return data; 
     } catch (error: any) {
       console.error("Error al obtener los miembros:", error);
       throw new Error(error.message || "Error al obtener los miembros");
     }
   }
-  // Eliminar un mensaje de un chat
   async deleteMessage(chatId: string, messageId: string, userId: string) {
     try {
       if (!chatId || !messageId || !userId) {
         throw new Error("El chatId, messageId y userId son obligatorios.");
       }
 
-      // Verificar si el mensaje pertenece al usuario (sender_id) o si el usuario es un administrador del chat
       const { data: message, error: messageError } = await supabase
         .from("messages")
-        .select("sender_id, chat_id, media_url") // Changed from file_url to media_url
+        .select("sender_id, chat_id, media_url") 
         .eq("id", messageId)
         .single();
 
@@ -416,9 +388,7 @@ class ChatService {
         throw new Error("El mensaje no existe.");
       }
 
-      // Verificar si el usuario es el remitente o tiene permisos para eliminar el mensaje
       if (message.sender_id !== userId) {
-        // Comprobar si el usuario es miembro del chat y si tiene permisos de administrador
         const { data: members, error: membersError } = await supabase
           .from("chat_members")
           .select("role")
@@ -437,9 +407,7 @@ class ChatService {
         }
       }
 
-      // Eliminar el archivo del bucket si existe
-      if (message.media_url) { // Changed from file_url to media_url
-        // Extract the file path from the media_url
+      if (message.media_url) { 
         const fileUrl = message.media_url;
         const filePath = fileUrl.includes("/uploads/")
           ? fileUrl.split("/uploads/")[1]?.split("?")[0]
@@ -447,18 +415,16 @@ class ChatService {
 
         if (filePath) {
           const { error: fileError } = await supabase.storage
-            .from("uploads") // Using "uploads" as per your other code
+            .from("uploads") 
             .remove([filePath]);
 
           if (fileError) {
             console.error("Error al eliminar el archivo del bucket:", fileError);
             console.warn("Continuando con la eliminación del mensaje a pesar del error en el archivo");
-            // Not throwing error to allow message deletion to continue
           }
         }
       }
 
-      // Eliminar el mensaje de la tabla 'messages'
       const { data, error } = await supabase
         .from("messages")
         .delete()
@@ -469,7 +435,7 @@ class ChatService {
         throw new Error(error.message || "Error al eliminar el mensaje");
       }
 
-      return data; // Retorna los datos del mensaje eliminado
+      return data; 
     } catch (error: any) {
       console.error("Error al eliminar el mensaje:", error);
       throw new Error(error.message || "Error al eliminar el mensaje");
@@ -494,8 +460,6 @@ class ChatService {
       throw new Error(error.message || 'Error al crear evento de chat');
     }
   }
-
-
 }
 
 export default new ChatService();

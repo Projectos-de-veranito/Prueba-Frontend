@@ -77,7 +77,6 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
         if (!user) return;
 
         try {
-            // Verificar si ya existe un chat entre estos dos usuarios
             const { data: existingChat, error: chatFetchError } = await supabase
                 .from("chats")
                 .select("id")
@@ -103,7 +102,6 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                 return;
             }
 
-            // Verificar si el contacto ya existe
             const { data: existingContact, error: contactFetchError } = await supabase
                 .from("contacts")
                 .select("id")
@@ -113,20 +111,14 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
 
             if (contactFetchError) throw contactFetchError;
 
-            let newContactId = existingContact?.id || null;
-
-            // Si el contacto no existe, agregar solo el registro del usuario actual
             if (!existingContact) {
                 const { data: newContact, error: contactInsertError } = await supabase
                     .from("contacts")
                     .insert([{ user_id: user.id, contact_id: contactId, status: "accepted" }])
-                    .select(); // Selecciona todos los campos
+                    .select();
 
                 if (contactInsertError) throw contactInsertError;
 
-                newContactId = newContact[0]?.id;
-
-                // Solo agregamos al estado la relación desde el usuario actual
                 setContacts((prevContacts) => [
                     ...prevContacts,
                     {
@@ -144,7 +136,6 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                 ]);
             }
 
-            // Crear un nuevo chat si no existía
             const { data: newChat, error: chatError } = await supabase
                 .from("chats")
                 .insert([{ is_group: false }])
@@ -153,7 +144,6 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
 
             if (chatError) throw chatError;
 
-            // Agregar ambos usuarios a chat_members
             const { error: membersError } = await supabase.from("chat_members").insert([
                 { chat_id: newChat.id, user_id: user.id },
                 { chat_id: newChat.id, user_id: contactId },
@@ -161,7 +151,6 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
 
             if (membersError) throw membersError;
 
-            // Seleccionar el nuevo chat
             onSelectContact({ id: contactId, username, avatar_url, chatId: newChat.id });
         } catch (error) {
             console.error("Error creando el chat y agregando contacto:", error);
@@ -200,7 +189,7 @@ const ContactList = ({ onSelectContact }: ContactListProps) => {
                                     >
                                         <div className="flex items-center gap-2">
                                             <img
-                                                src={user.avatar_url || "/default-avatar.png"}
+                                                src={user.avatar_url || 'https://i.ibb.co/hRCDCFgs/perfil.png'}
                                                 alt={user.username}
                                                 className="w-8 h-8 rounded-full object-cover"
                                             />

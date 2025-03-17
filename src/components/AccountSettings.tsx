@@ -55,7 +55,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
         const file = event.target.files?.[0];
         if (!file || !user) return;
     
-        // Obtener la extensión del archivo
         const allowedFormats = ["image/png", "image/jpeg", "image/jpg"];
         
         if (!allowedFormats.includes(file.type)) {
@@ -81,7 +80,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
     
             const newAvatarUrl = result.data.url;
     
-            // Actualizar la base de datos con la nueva imagen
             const { error: updateError } = await supabase
                 .from("users")
                 .update({ avatar_url: newAvatarUrl })
@@ -92,7 +90,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
                 return;
             }
     
-            // Actualizar el estado del usuario con la nueva imagen
             await updateUser({ avatar_url: newAvatarUrl });
     
         } catch (error) {
@@ -103,22 +100,19 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
 
     return (
         <div className="w-full h-full min-h-screen flex flex-col p-4 sm:p-6 bg-[#1a2c28] overflow-y-auto">
-          {/* Botón de regreso */}
           <button onClick={() => setView("config")} className="text-white flex items-center mb-4 font-bold text-sm sm:text-base">
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Ajustes de Cuenta
           </button>
       
-          {/* Contenedor con imagen y efecto hover - centrado en móvil */}
           <div className="relative flex flex-col items-center mt-4 sm:mt-10 mb-6 sm:mb-10">
             {/* Imagen de perfil */}
             <img
-              src={user?.avatar_url || "/default-avatar.png"}
+              src={user?.avatar_url || "https://i.ibb.co/hRCDCFgs/perfil.png"}
               alt="Avatar"
               className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-2 border-green-950 object-cover cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             />
       
-            {/* Overlay con efecto hover */}
             <div
               className="absolute w-28 h-28 sm:w-40 sm:h-40 flex flex-col items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-50 transition-opacity duration-300 cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
@@ -129,7 +123,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
               </p>
             </div>
       
-            {/* Input oculto para seleccionar imagen */}
             <input
               type="file"
               accept="image/*"
@@ -139,7 +132,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
             />
           </div>
       
-          {/* Nombre editable */}
           <div className="mt-4 sm:mt-6 w-full">
             <p className="text-xs sm:text-sm text-green-500 mb-1">Tu Nombre</p>
             <div className="flex items-center">
@@ -155,7 +147,6 @@ const AccountSettings = ({ setView }: { setView: (view: string) => void }) => {
                 <p className="text-base sm:text-lg font-semibold text-white flex-grow truncate">{username}</p>
               )}
       
-              {/* Botón de editar/guardar con hover circular */}
               <button
                 onClick={() => {
                   if (isEditing) {

@@ -16,7 +16,6 @@ function App() {
   );
 }
 
-// ✅ Este componente se encarga de la navegación según el estado del usuario
 const AppRoutes = () => {
   const { user } = useAuth();
 

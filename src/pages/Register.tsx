@@ -28,7 +28,7 @@ const Register = () => {
   };
 
   if (showChat) {
-    return <Dashboard />; // Renderiza el componente Chat sin cambiar la URL
+    return <Dashboard />; 
   }
 
   return (
