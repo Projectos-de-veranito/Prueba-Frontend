@@ -4,7 +4,7 @@ const NotFound = () => {
         <div className="flex flex-col h-screen bg-black text-white justify-center items-center p-4">
             <div className="flex flex-col items-center max-w-md w-full">
                 <div className="mb-8">
-                    <img src="src/assets/logo.webp" alt="Logo" width="120" height="60" />
+                    <img src="https://i.ibb.co/S2RGNGL/logo.webp" alt="Logo" width="120" height="60" />
                 </div>
 
 
