@@ -61,7 +61,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ senderId, receiverId }) => {
           setChat(response);
           fetchMessages(response.id);
         } else {
-          setError("No se encontró un chat entre estos usuarios.");
+          setError("No se encontró un chat entre estos usuarios .");
         }
       } catch (error: any) {
         setError("Error al cargar el chat: " + (error.message || "Desconocido"));
