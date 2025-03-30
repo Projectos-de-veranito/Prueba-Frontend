@@ -308,7 +308,7 @@ const ChatList = ({ onSelectContact }: ChatListProps) => {
                         })
                     ) : (
                         <div className="flex flex-col items-center justify-center py-10 text-center">
-                            <p className="text-gray-400 text-sm">No hay contactos de MessageApp</p>
+                            <p className="text-gray-400 text-sm">No hay contactos de FlowChat</p>
                             <p className="text-gray-500 text-xs mt-1">Agrega usuarios para comenzar</p>
                         </div>
                     )}
